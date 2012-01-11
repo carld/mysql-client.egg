@@ -36,7 +36,7 @@
     C_word *store_list = C_alloc(C_SIZEOF_LIST(num_fields));
     C_word x, last, current, first = C_SCHEME_END_OF_LIST;
 
-    for(last = C_SCHEME_UNDEFINED; num_fields--; last = current) {
+    for(last = C_SCHEME_UNDEFINED; num_fields--;   ) {
       C_word *xp1 = NULL;
       C_word x1   = C_SCHEME_UNDEFINED;
 
@@ -53,6 +53,8 @@
       if(last != C_SCHEME_UNDEFINED)
         C_set_block_item(last, 1, current);
       else first = current;
+
+      last = current;
     }
     return(first);
   } else {
