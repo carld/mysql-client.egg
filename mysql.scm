@@ -30,15 +30,25 @@
   int num_fields = mysql_num_fields(result);
   int num_rows   = mysql_num_rows(result);
   MYSQL_ROW row  = mysql_fetch_row(result);
+
   if (row != NULL) {
     C_word *store_list = C_alloc(C_SIZEOF_LIST(num_fields));
     C_word x, last, current, first = C_SCHEME_END_OF_LIST;
-    for(last = C_SCHEME_UNDEFINED; 
-             num_fields--; 
-             last = current) {
-      C_word *xp = C_alloc(C_SIZEOF_STRING(strlen(row[num_fields])));
-      C_word x = C_string2(&xp, row[num_fields]);
-      current = C_a_pair(&store_list, x, C_SCHEME_END_OF_LIST);
+
+    for(last = C_SCHEME_UNDEFINED; num_fields--; last = current) {
+      C_word *xp1 = NULL;
+      C_word x1   = C_SCHEME_UNDEFINED;
+
+      if (row[num_fields] == NULL) continue;
+
+      xp1 = C_alloc(C_SIZEOF_STRING(strlen(row[num_fields])));
+      if (xp1 == NULL) {
+        printf("C_alloc, out of memory?\n");
+        exit(-1);
+      }
+      x1 = C_string2(&xp1, row[num_fields]);
+      current = C_a_pair(&store_list, x1, C_SCHEME_END_OF_LIST);
+
       if(last != C_SCHEME_UNDEFINED)
         C_set_block_item(last, 1, current);
       else first = current;
