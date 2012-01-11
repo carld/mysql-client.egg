@@ -8,6 +8,9 @@
 ;   (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
 ;   (define fetch (mysql "select * from messages"))
 ;   (fetch)
+;   
+; A NULL field is represented by a string containing 
+; a 0x04 0x00 char sequence
 
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
@@ -16,50 +19,31 @@
                     (close-mysql-c-connection mysql-c-conn)))
   (define (mysql-query sql)
     (define result-c (mysql-c-query mysql-c sql))
+    (define (fetch-c)(mysql-c-fetch-row result-c))
     (set-finalizer! result-c
                     (lambda()
                       (mysql-c-free-result result-c)))
-    (lambda()
-      (mysql-c-fetch-row result-c)))
+    fetch-c)
   mysql-query)
 
 (foreign-declare "#include \"mysql.h\"")
 
 (define mysql-c-fetch-row
-  (foreign-primitive scheme-object ((c-pointer result))
+  (foreign-lambda* c-string-list* ((c-pointer result))
 #<<END
   int num_fields = mysql_num_fields(result);
-  int num_rows   = mysql_num_rows(result);
-  MYSQL_ROW row  = mysql_fetch_row(result);
-
-  if (row != NULL) {
-    C_word *store_list = C_alloc(C_SIZEOF_LIST(num_fields));
-    C_word x, last, current, first = C_SCHEME_END_OF_LIST;
-
-    for(last = C_SCHEME_UNDEFINED; num_fields--;   ) {
-      C_word *xp1 = NULL;
-      C_word x1   = C_SCHEME_UNDEFINED;
-
-      if (row[num_fields] == NULL) continue;
-
-      xp1 = C_alloc(C_SIZEOF_STRING(strlen(row[num_fields])));
-      if (xp1 == NULL) {
-        printf("C_alloc, out of memory?\n");
-        exit(-1);
-      }
-      x1 = C_string2(&xp1, row[num_fields]);
-      current = C_a_pair(&store_list, x1, C_SCHEME_END_OF_LIST);
-
-      if(last != C_SCHEME_UNDEFINED)
-        C_set_block_item(last, 1, current);
-      else first = current;
-
-      last = current;
-    }
-    return(first);
-  } else {
-    return(C_SCHEME_FALSE);
+  MYSQL_ROW row;
+  char **fields;
+  fields = (char **)malloc(sizeof(char *) * num_fields);
+  row = mysql_fetch_row(result);
+  for (;num_fields--;) {
+    printf("%s:%d  %s\n", __FILE__, __LINE__, row[num_fields]);
+    if (row[num_fields] == NULL) 
+      fields[num_fields] = strdup("\x04");
+    else
+      fields[num_fields] = strdup(row[num_fields]);
   }
+  return(fields);
 END
 ))
 
