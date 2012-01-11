@@ -1,7 +1,10 @@
-; chicken-scheme super lite mysql egg
+; chicken-scheme  MySQL query procedure
 ; Copyright (c) 2011 A. Carl Douglas
-
-;(declare (export mysql))
+; 
+; (require-library mysql)
+; (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
+; (define fetch (mysql "select * from messages"))
+; (fetch)
 
 (foreign-declare "#include \"mysql.h\"")
 
