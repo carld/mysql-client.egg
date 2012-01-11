@@ -1,28 +1,29 @@
 ; chicken-scheme  MySQL query procedure
-; Copyright (c) 2011 A. Carl Douglas
+;
+; To build:
+;   CSC_OPTIONS=`mysql_config --include --libs` chicken-install -n
 ; 
-; (require-library mysql)
-; (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
-; (define fetch (mysql "select * from messages"))
-; (fetch)
-
-(foreign-declare "#include \"mysql.h\"")
+; To use:
+;   (require-library mysql)
+;   (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
+;   (define fetch (mysql "select * from messages"))
+;   (fetch)
 
 (define (make-mysql-connection host user pass database)
-  (define mysql-c 
-    (make-mysql-c-connection host user pass database))
+  (define mysql-c (make-mysql-c-connection host user pass database))
   (set-finalizer! mysql-c 
                   (lambda() 
                     (close-mysql-c-connection mysql-c-conn)))
   (define (mysql-query sql)
-    (define result-c 
-      (mysql-c-query mysql-c sql))
+    (define result-c (mysql-c-query mysql-c sql))
     (set-finalizer! result-c
                     (lambda()
                       (mysql-c-free-result result-c)))
     (lambda()
       (mysql-c-fetch-row result-c)))
   mysql-query)
+
+(foreign-declare "#include \"mysql.h\"")
 
 (define mysql-c-fetch-row
   (foreign-primitive scheme-object ((c-pointer result))
