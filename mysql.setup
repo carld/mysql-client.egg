@@ -1,0 +1,6 @@
+; e.g. CSC_OPTIONS=`mysql_config --include --libs` chicken-install -n
+
+(compile -v -s "mysql.scm" -j mysql )
+
+(install-extension 'mysql '("mysql.so"))
+
