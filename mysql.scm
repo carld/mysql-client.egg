@@ -37,9 +37,8 @@
   fields = (char **)malloc(sizeof(char *) * num_fields);
   row = mysql_fetch_row(result);
   for (;num_fields--;) {
-    printf("%s:%d  %s\n", __FILE__, __LINE__, row[num_fields]);
     if (row[num_fields] == NULL) 
-      fields[num_fields] = strdup("\x04");
+      fields[num_fields] = strdup("\x04\x00");
     else
       fields[num_fields] = strdup(row[num_fields]);
   }
