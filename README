@@ -1,10 +1,17 @@
-A small (experimental) MySQL client procedure for chicken-scheme.
-
-Example:
+; A small (experimental) MySQL client procedure for chicken-scheme.
+;
+; Example program below, to compile and run:
+;
+;   make
+;   csc -k -o scm-mysql-example README
+;   ./scm-mysql-example
 
   (require-library mysql)
+
   (define sql (make-mysql-connection "localhost" "root" "" "information_schema"))
+
   (define fetch (sql "select * from schemata"))
+
   (define (fetch-loop)
     (let ((row (fetch)))
       (if row 
