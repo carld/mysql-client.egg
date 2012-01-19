@@ -3,7 +3,6 @@
 ; Example program below, to compile and run:
 ;
 ;   make
-;   csc -k -o scm-mysql-example README
 ;   ./scm-mysql-example
 
   (require-library mysql)
