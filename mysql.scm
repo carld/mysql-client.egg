@@ -19,7 +19,10 @@
                     (close-mysql-c-connection mysql-c-conn)))
   (define (mysql-query sql)
     (define result-c (mysql-c-query mysql-c sql))
-    (define (fetch-c)(mysql-c-fetch-row result-c))
+    (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
+                        (if (> (length row) 0)
+                            row
+                            #f)))
     (set-finalizer! result-c
                     (lambda()
                       (mysql-c-free-result result-c)))
@@ -34,8 +37,12 @@
   int num_fields = mysql_num_fields(result);
   MYSQL_ROW row;
   char **fields;
-  fields = (char **)malloc(sizeof(char *) * num_fields);
   row = mysql_fetch_row(result);
+  fields = (char **)malloc(sizeof(char *) * num_fields);
+  if (row == NULL) {
+    fields[0] = NULL;
+    return(fields);
+  }
   for (;num_fields--;) {
     if (row[num_fields] == NULL) 
       fields[num_fields] = strdup("\x04\x00");
