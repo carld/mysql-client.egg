@@ -12,11 +12,16 @@ ifeq ($(UNAME),Darwin)
   CSC_OPTIONS ?= `$(MY_CONFIG) --include --libs`
 endif
 
+all: mysql.so scm-mysql-example
+
 mysql.so:
 	CSC_OPTIONS=$(CSC_OPTIONS) chicken-install -n
 
+scm-mysql-example:
+	csc -o scm-mysql-example README
+
 clean:
-	rm -v mysql.so mysql.o mysql.c
+	rm -v -f mysql.so mysql.o mysql.c scm-mysql-example 
 
 .PHONY: clean 
 
