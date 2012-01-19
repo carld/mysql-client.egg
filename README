@@ -1,0 +1,16 @@
+A small (experimental) MySQL client procedure for chicken-scheme.
+
+Example:
+
+  (require-library mysql)
+  (define sql (make-mysql-connection "localhost" "root" "" "information_schema"))
+  (define fetch (sql "select * from schemata"))
+  (define (fetch-loop)
+    (let ((row (fetch)))
+      (if row 
+         (begin
+            (printf "~A~%" row)
+            (fetch-loop)))))
+
+  (fetch-loop)
+
