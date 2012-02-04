@@ -42,11 +42,8 @@
   char **fields;
   row = mysql_fetch_row(result);
   fields = (char **)malloc(sizeof(char *) * num_fields);
-  if (row == NULL) {
-    fields[0] = NULL;
-    return(fields);
-  }
-  for (;num_fields--;) {
+  fields[0] = NULL;
+  for (;row && num_fields--;) {
     if (row[num_fields] == NULL) 
       fields[num_fields] = strdup("\x04\x00");
     else
