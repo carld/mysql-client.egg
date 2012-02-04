@@ -5,9 +5,9 @@
 ;   make
 ;   ./scm-mysql-example
 
-  (require-library mysql)
+  (include "mysql.scm")
 
-  (define sql (make-mysql-connection "localhost" "root" "" "information_schema"))
+  (define sql (make-mysql-connection "localhost" "root" #f "information_schema"))
 
   (define fetch (sql "select * from schemata"))
 
