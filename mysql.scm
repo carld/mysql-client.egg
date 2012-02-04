@@ -38,16 +38,17 @@
   (foreign-lambda* c-string-list* ((c-pointer result))
 #<<END
   int num_fields = mysql_num_fields(result);
+  int index = num_fields;
   MYSQL_ROW row;
   char **fields;
   row = mysql_fetch_row(result);
-  fields = (char **)malloc(sizeof(char *) * num_fields);
-  fields[0] = NULL;
-  for (;row && num_fields--;) {
-    if (row[num_fields] == NULL) 
-      fields[num_fields] = strdup("\x04\x00");
+  fields = (char **)malloc(sizeof(char *) * (num_fields + 1));
+  bzero(fields, sizeof (char *) * (num_fields + 1));
+  for (;row && index--;) {
+    if (row[index] == NULL) 
+      fields[index] = strdup("\x04\x00");
     else
-      fields[num_fields] = strdup(row[num_fields]);
+      fields[index] = strdup(row[index]);
   }
   return(fields);
 END
