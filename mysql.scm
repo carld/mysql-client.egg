@@ -90,7 +90,7 @@ END
 #<<END
   MYSQL *conn;
   conn = mysql_init(NULL);
-  mysql_option(conn, MYSQL_READ_DEFAULT_GROUP, "chicken");
+  mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "chicken");
   mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
   return(conn);
 END
