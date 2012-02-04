@@ -64,11 +64,20 @@ END
 (define mysql-c-query 
   (foreign-primitive c-pointer ((c-pointer conn) (c-string sql))
 #<<END
-int rc = mysql_query(conn, sql);
-MYSQL_RES *result;
-if (rc != 0) C_return(NULL); /*C_return(C_SCHEME_FALSE);*/
-result = mysql_store_result(conn);
-return(result);
+  MYSQL_RES *result;
+  int rc = mysql_query(conn, sql);
+
+  if (mysql_errno(conn) != 0) {
+    printf ("MYSQL ERROR: %d %s\n", 
+            mysql_errno(conn), mysql_error(conn));
+  }
+
+  if (rc != 0) {
+    C_return(NULL); /*C_return(C_SCHEME_FALSE);*/
+  }
+
+  result = mysql_store_result(conn);
+  return(result);
 END
 ))
 
@@ -90,6 +99,10 @@ END
   conn = mysql_init(NULL);
   mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "client");
   mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
+  if (mysql_errno(conn) != 0) {
+    printf ("MYSQL ERROR: %d %s\n", 
+            mysql_errno(conn), mysql_error(conn));
+  }
   return(conn);
 END
 ))
