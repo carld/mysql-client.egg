@@ -8,6 +8,9 @@
 ;   (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
 ;   (define fetch (mysql "select * from messages"))
 ;   (fetch)
+;
+; Provide password as #f to use the password from the .my.cnf
+; options file (/home/user/.my.cnf).
 ;   
 ; A NULL field is represented by a string containing 
 ; a 0x04 0x00 char sequence
@@ -87,6 +90,7 @@ END
 #<<END
   MYSQL *conn;
   conn = mysql_init(NULL);
+  mysql_option(conn, MYSQL_READ_DEFAULT_GROUP, "chicken");
   mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
   return(conn);
 END
