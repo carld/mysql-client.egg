@@ -7,10 +7,10 @@ CSC_LFLAGS   = $(shell $(MY_CONFIG) --libs )
 
 all: mysql.so scm-mysql-example
 
-mysql.so:
+mysql.so: mysql.scm
 	CSC_OPTIONS="$(CSC_CFLAGS) $(CSC_LFLAGS)" chicken-install -n
 
-scm-mysql-example:
+scm-mysql-example: README
 	csc -C "$(CSC_CFLAGS)" -L "$(CSC_LFLAGS)" -o scm-mysql-example README
 
 clean:
