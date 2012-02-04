@@ -68,7 +68,7 @@ END
   int rc = mysql_query(conn, sql);
 
   if (mysql_errno(conn) != 0) {
-    printf ("MYSQL ERROR: %d %s\n", 
+    fprintf (stderr, "MYSQL ERROR: %d %s\n", 
             mysql_errno(conn), mysql_error(conn));
   }
 
@@ -100,7 +100,7 @@ END
   mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "client");
   mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
   if (mysql_errno(conn) != 0) {
-    printf ("MYSQL ERROR: %d %s\n", 
+    fprintf (stderr, "MYSQL ERROR: %d %s\n", 
             mysql_errno(conn), mysql_error(conn));
   }
   return(conn);
