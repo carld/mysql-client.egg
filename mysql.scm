@@ -18,7 +18,7 @@
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
   (set-finalizer! mysql-c 
-                  (lambda() 
+                  (lambda(x) 
                     (close-mysql-c-connection mysql-c-conn)))
   (define (mysql-query sql)
     (define result-c (mysql-c-query mysql-c sql))
@@ -27,7 +27,7 @@
                             row
                             #f)))
     (set-finalizer! result-c
-                    (lambda()
+                    (lambda(x)
                       (mysql-c-free-result result-c)))
     fetch-c)
   mysql-query)
