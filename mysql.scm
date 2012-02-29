@@ -42,12 +42,11 @@
   MYSQL_ROW row;
   char **fields;
   row = mysql_fetch_row(result);
-  fields = (char **)malloc(sizeof(char *) * (num_fields + 1));
+  fields = (char **)calloc(num_fields + 1, sizeof(char *));
   if (fields == NULL) {
     fprintf(stderr, "out of memory\n");
     return(C_SCHEME_FALSE);
   }
-  bzero(fields, sizeof (char *) * (num_fields + 1));
   for (;row && index--;) {
     if (row[index] == NULL) 
       fields[index] = strdup("\x04\x00");
