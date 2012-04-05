@@ -1,7 +1,24 @@
-; To compile:
-;   CSC_OPTIONS=`mysql_config --include --libs` chicken-install -n
+(use posix)
 
-(compile -C -ggdb -k -v -s mysql.scm )
+(define iflags '())
+(define lflags '())
 
-(install-extension 'mysql '("mysql.so"))
+(with-input-from-pipe 
+  "mysql_config --include" 
+  (lambda() 
+    (set! iflags (read-line))))
+
+(with-input-from-pipe 
+  "mysql_config --libs" 
+  (lambda() 
+    (set! lflags (read-line))))
+
+(compile -C ,iflags
+         -L ,lflags
+         -k -v -s mysql.scm)
+
+(install-extension 
+  'mysql 
+  '("mysql.so")
+  '((version "0.0")))
 
