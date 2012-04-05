@@ -20,5 +20,5 @@
 (install-extension 
   'mysql 
   '("mysql.so")
-  '((version "0.0")))
+  '((version "0.2")))
 
