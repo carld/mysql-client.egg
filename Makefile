@@ -5,15 +5,17 @@ UNAME       ?= $(shell uname)
 CSC_CFLAGS   = $(shell $(MY_CONFIG) --include )
 CSC_LFLAGS   = $(shell $(MY_CONFIG) --libs )
 
-all: mysql.so scm-mysql-example
+all: install scm-mysql-example
+
+install:
+	chicken-install -s -test
 
 mysql.so: mysql.scm
 	CSC_OPTIONS="$(CSC_CFLAGS) $(CSC_LFLAGS)" chicken-install -n
 
 scm-mysql-example: README
-	csc -C "$(CSC_CFLAGS) -Wall -pendantic -g -ggdb " \
+	csc -C "$(CSC_CFLAGS)" \
 	    -L "$(CSC_LFLAGS)" \
-	    -d2 -v \
 	    -o scm-mysql-example README
 
 clean:

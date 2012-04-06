@@ -1,6 +1,6 @@
 ; chicken-scheme  MySQL query procedure
 ;
-; To build:
+; To build as a standalone shared library:
 ;   CSC_OPTIONS=`mysql_config --include --libs` chicken-install -n
 ; 
 ; To use:
@@ -10,10 +10,18 @@
 ;   (fetch)
 ;
 ; Provide password as #f to use the password from the .my.cnf
-; options file (/home/user/.my.cnf).
-;   
-; A NULL field is represented by a string containing 
-; a 0x04 0x00 char sequence
+; options file (/home/user/.my.cnf). 
+;
+; Example .my.cnf:
+;
+;   [client]
+;   user=root
+;   password=secret
+;
+; Note how MySQL (NULL) values are represented when
+; returned in an array of string pointers:
+; A (NULL) value is represented by a string containing 
+; a 0x04 0x00 char sequence.
 
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
