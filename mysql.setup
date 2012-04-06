@@ -15,7 +15,7 @@
 
 (compile -C ,iflags
          -L ,lflags
-         -k -v -s mysql.scm)
+         -s mysql.scm)
 
 (install-extension 
   'mysql 
