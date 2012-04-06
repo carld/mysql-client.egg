@@ -1,19 +1,22 @@
-; A small (experimental) MySQL client library for chicken-scheme.
+; A minimal MySQL client library for chicken-scheme.
 ;
-; To install, from the directory containing mysql.setup:
+; Requires MySQL database system development components,
+; libmysqlclient and mysql_config.
+;
+; To install, from the directory containing mysql-client.setup:
 ;
 ;   chicken-install -s -test
 ;
 ; To uninstall:
 ;
-;   chicken-uninstall -s mysql
+;   chicken-uninstall -s mysql-client
 ;
 ; Example program below, to compile and run:
 ;
 ;   make
 ;   ./scm-mysql-example
 
-(require-library mysql)
+(require-library mysql-client)
 
 (define sql (make-mysql-connection "localhost" "root" #f "information_schema"))
 

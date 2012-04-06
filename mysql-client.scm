@@ -4,7 +4,7 @@
 ;   CSC_OPTIONS=`mysql_config --include --libs` chicken-install -n
 ; 
 ; To use:
-;   (require-library mysql)
+;   (require-library mysql-client)
 ;   (define mysql (make-mysql-connection "host" "user" "pass" "schema"))
 ;   (define fetch (mysql "select * from messages"))
 ;   (fetch)

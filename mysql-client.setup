@@ -15,10 +15,10 @@
 
 (compile -C ,iflags
          -L ,lflags
-         -s mysql.scm)
+         -s mysql-client.scm)
 
 (install-extension 
-  'mysql 
-  '("mysql.so")
+  'mysql-client
+  '("mysql-client.so")
   '((version "0.2")))
 

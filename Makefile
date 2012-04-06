@@ -10,7 +10,7 @@ all: install scm-mysql-example
 install:
 	chicken-install -s -test
 
-mysql.so: mysql.scm
+mysql-client.so: mysql-client.scm
 	CSC_OPTIONS="$(CSC_CFLAGS) $(CSC_LFLAGS)" chicken-install -n
 
 scm-mysql-example: README
@@ -19,7 +19,7 @@ scm-mysql-example: README
 	    -o scm-mysql-example README
 
 clean:
-	rm -v -f mysql.so mysql.o mysql.c scm-mysql-example 
+	rm -v -f mysql-client.so mysql-client.o mysql-client.c scm-mysql-example 
 
 .PHONY: clean 
 

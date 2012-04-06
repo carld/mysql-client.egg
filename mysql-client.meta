@@ -2,4 +2,4 @@
  (category db)
  (author "A. Carl Douglas")
  (synopsis "A MySQL client library.")
- (files "mysql.scm" "mysql.setup"))
+ (files "mysql-client.scm" "mysql-client.setup"))

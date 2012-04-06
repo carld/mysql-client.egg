@@ -1,4 +1,4 @@
-(require-library mysql)
+(require-library mysql-client)
 
 (define mysql 
   (make-mysql-connection "localhost" "root" "" "information_schema"))
