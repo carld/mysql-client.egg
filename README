@@ -16,7 +16,7 @@
 ;   make
 ;   ./scm-mysql-example
 
-(require-library mysql-client)
+(use mysql-client)
 
 (define sql (make-mysql-connection "localhost" "root" #f "information_schema"))
 

@@ -23,11 +23,14 @@
 ; A (NULL) value is represented by a string containing 
 ; a 0x04 0x00 char sequence.
 
+(module mysql-client (make-mysql-connection)
+        (import scheme chicken foreign)
+
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
   (set-finalizer! mysql-c 
                   (lambda(x) 
-                    (close-mysql-c-connection mysql-c-conn)))
+                    (close-mysql-c-connection mysql-c)))
   (define (mysql-query sql)
     (define result-c (mysql-c-query mysql-c sql))
     (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
@@ -118,4 +121,4 @@ END
 END
 ))
 
-
+)
