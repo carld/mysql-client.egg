@@ -15,10 +15,11 @@
 
 (compile -C ,iflags
          -L ,lflags
-         -k 
+         -d0 -O3
          -s mysql-client.scm 
          -j mysql-client)
-(compile -s mysql-client.import.scm)
+(compile -d0 -O3
+         -s mysql-client.import.scm)
 
 (install-extension 
   'mysql-client
