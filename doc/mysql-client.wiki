@@ -1,0 +1,93 @@
+﻿== MySQL client
+
+=== Description
+
+A small MySQL client library for chicken-scheme. This egg makes it possible to execute an SQL query on a MySQL database.
+
+=== Authors
+
+A. Carl Douglas
+
+=== Requirements
+
+Requires MySQL database system development components,
+libmysqlclient and mysql_config.
+
+The {{mysql_config}} program needs to be in the {{$PATH}} so the linker can find the native MySQL libraries.
+
+On a Linux machine, consider trying:
+
+  apt-get install libmysqlclient-dev
+
+The mysql-client egg also has a runtime dependency on the regex egg.
+
+
+=== API
+
+<procedure>(make-mysql-connection hostname username password schema)</procedure>
+
+This procedure will return a procedure that contains a closed off MySQL connection and can execute a query when called.
+
+=== Examples
+
+Here is a trivial example:
+
+  (use mysql-client)
+  (define mysql (make-mysql-connection "localhost" "root" #f "information_schema"))
+  (define fetch (mysql "SELECT * FROM schemata"))
+  (display (fetch))
+  (newline)
+
+
+Here is an example that will use the {{mysql_real_escape_string}} MySQL function to safely escape parameters in the query string using a placeholder syntax. In this case, the first argument is a string containing an SQL query, and the second argument will be an association list where the key represents the placeholder symbol in the query.
+
+  (use mysql-client)
+  (define mysql (make-mysql-connection "localhost" "username" "secret" "database"))
+  (define fetch (mysql "SELECT * FROM t1 WHERE c1 = '$1' OR c2 = '$2'" 
+                       '(($1 . "value 1';' ;")($2 . "value 2'; drop database; "))))
+  (display (fetch))
+  (newline)
+
+
+For power users, to access directly the MySQL connection object pointer, pass a procedure to the MySQL client closure.
+
+  (use mysql-client)
+  (define mysql (make-mysql-connection "localhost" "username" "secret" "database"))
+  (define fetch (mysql (lambda(c)(printf "~S ~%" c))))
+  (display (fetch))
+  (newline)
+
+=== License
+
+Copyright (C) 2012, A. Carl Douglas
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+Neither the name of the author nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+=== Version History
+
+* 0.4  Initial publication
+
+

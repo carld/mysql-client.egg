@@ -22,25 +22,53 @@
 
 (module mysql-client (make-mysql-connection)
         (import scheme chicken foreign)
+        (use srfi-1 regex)
 
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
-  (set-finalizer! mysql-c 
-                  (lambda(x) 
-                    (close-mysql-c-connection mysql-c)))
-  (define (mysql-query sql)
-    (define result-c (mysql-c-query mysql-c sql))
-    (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
-                        (if (> (length row) 0)
-                            row
-                            #f)))
-    (set-finalizer! result-c
-                    (lambda(x)
-                      (mysql-c-free-result result-c)))
-    fetch-c)
+  (set-finalizer! mysql-c (lambda(x) (close-mysql-c-connection mysql-c)))
+  (define (mysql-query query . parameters)
+    (cond ((and (string? query)(equal? parameters '())) (dispatch-query mysql-c query parameters))
+          ((string? query) (dispatch-query mysql-c query (car parameters)))
+          ((procedure? query) (dispatch-proc mysql-c query parameters))
+          (else (error "unrecognised query object: " query))))
   mysql-query)
 
+(define (dispatch-query conn query parameters)
+  (define result-c 
+    (cond ((equal? '() parameters) (mysql-c-query conn query))
+          (else (mysql-c-query conn (escape-placeholder-params conn query parameters)))))
+  (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
+                      (if (> (length row) 0) row #f)))
+  (set-finalizer! result-c (lambda(x) (mysql-c-free-result result-c)))
+  fetch-c)
+
+(define (dispatch-proc conn proc . parameters)
+  (proc conn parameters))
+
+(define (escape-placeholder-params conn query parameters)
+  (let ((escaped-parameters (map (lambda(x)
+                                   (cons (string-append "\\" (symbol->string (car x))) (mysql-c-real-escape-string conn (cdr x))))
+                                 parameters)))
+       (string-substitute* query escaped-parameters)))
+
 (foreign-declare "#include \"mysql.h\"")
+
+(define mysql-c-real-escape-string
+  (foreign-lambda* c-string ((c-pointer conn) (c-string str))
+#<<END
+  char *dst = NULL;
+  unsigned long len1 = 0, len2 = 0;
+  len1 = strlen(str) * 2 + 1;
+  dst = (char *)calloc(len1, sizeof(char));
+  if (dst == NULL) {
+    fprintf(stderr, "out of memory\n");
+    return(C_SCHEME_FALSE);
+  }
+  len2 = mysql_real_escape_string(conn, dst, str, strlen(str));
+  return(dst);
+END
+))
 
 (define mysql-c-fetch-row
   (foreign-lambda* c-string-list* ((c-pointer result))
@@ -76,6 +104,9 @@ END
   (foreign-primitive c-pointer ((c-pointer conn) (c-string sql))
 #<<END
   MYSQL_RES *result;
+
+  fprintf (stderr, "MYSQL QUERY: %s\n", sql);
+
   int rc = mysql_query(conn, sql);
 
   if (mysql_errno(conn) != 0) {

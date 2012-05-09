@@ -1,7 +1,8 @@
 ; A minimal MySQL client library for chicken-scheme.
 ;
 ; Requires MySQL database system development components,
-; libmysqlclient and mysql_config.
+; libmysqlclient and mysql_config. The mysql_config
+; program needs to be in the $PATH.
 ;
 ; To install, from the directory containing mysql-client.setup:
 ;
@@ -15,6 +16,23 @@
 ;
 ;   make
 ;   ./scm-mysql-example
+;
+; 
+; To escape parameters used in a query, a placeholder
+; syntax can be used, and an association list provided.
+;
+; Example:
+
+;   (sql "SELECT * FROM t1 WHERE c1 = $1 AND c2 = $2" '(($1 . "value1") ($2 . "value2")))
+;
+; For access to the underlying MYSQL connection pointer object,
+; pass a procedure rather than a string. The provided procedure will 
+; be called with the connection pointer as the first argument.
+; 
+; Example:
+;
+;   (sql (lambda(c) (printf "Connection pointer: ~S~%" c)))
+;
 
 (use mysql-client)
 
