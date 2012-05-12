@@ -39,9 +39,13 @@
     (cond ((equal? '() parameters) (mysql-c-query conn query))
           (else (mysql-c-query conn (escape-placeholder-params conn query parameters)))))
   (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
-                      (if (> (length row) 0) row #f)))
+                      (if (and row (> (length row) 0)) 
+                          row 
+                          #f)))
   (set-finalizer! result-c (lambda(x) (mysql-c-free-result result-c)))
-  fetch-c)
+  (if result-c 
+      fetch-c 
+      (lambda()#f)))
 
 (define (dispatch-proc conn proc . parameters)
   (proc conn parameters))
@@ -68,7 +72,7 @@
   dst = (char *)calloc(len1, sizeof(char));
   if (dst == NULL) {
     fprintf(stderr, "out of memory\n");
-    return(C_SCHEME_FALSE);
+    return(NULL);
   }
   len2 = mysql_real_escape_string(conn, dst, str, strlen(str));
   return(dst);
@@ -78,15 +82,20 @@ END
 (define mysql-c-fetch-row
   (foreign-lambda* c-string-list* ((c-pointer result))
 #<<END
-  int num_fields = mysql_num_fields(result);
-  int index = num_fields;
-  MYSQL_ROW row;
-  char **fields;
+  int num_fields = 0;
+  int index = 0;
+  MYSQL_ROW row = NULL;
+  char **fields = NULL;
+  if (result == NULL) {
+    return(NULL);
+  }
+  num_fields = mysql_num_fields(result);
+  index = num_fields;
   row = mysql_fetch_row(result);
   fields = (char **)calloc(num_fields + 1, sizeof(char *));
   if (fields == NULL) {
     fprintf(stderr, "out of memory\n");
-    return(C_SCHEME_FALSE);
+    return(NULL);
   }
   for (;row && index--;) {
     if (row[index] == NULL) 
@@ -120,7 +129,7 @@ END
   }
 
   if (rc != 0) {
-    C_return(NULL); /*C_return(C_SCHEME_FALSE);*/
+    return(NULL); /*C_return(C_SCHEME_FALSE);*/
   }
 
   result = mysql_store_result(conn);
