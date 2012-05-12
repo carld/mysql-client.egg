@@ -26,40 +26,58 @@
 
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
-  (set-finalizer! mysql-c (lambda(x) (close-mysql-c-connection mysql-c)))
+  (set-finalizer! mysql-c close-mysql-c-connection)
+
   (define (mysql-query query . parameters)
-    (cond ((and (string? query)(equal? parameters '())) (dispatch-query mysql-c query parameters))
-          ((string? query) (dispatch-query mysql-c query (car parameters)))
-          ((procedure? query) (dispatch-proc mysql-c query parameters))
+    (cond ((procedure? query)(mysql-query-with-proc mysql-c query parameters))
+          ((string? query)   (mysql-query-with-string mysql-c query parameters))
           (else (error "unrecognised query object: " query))))
   mysql-query)
 
-(define (dispatch-query conn query parameters)
-  (define result-c 
-    (cond ((equal? '() parameters) (mysql-c-query conn query))
-          (else (mysql-c-query conn (escape-placeholder-params conn query parameters)))))
-  (define (fetch-c)(let ((row (mysql-c-fetch-row result-c)))
-                      (if (and row (> (length row) 0)) 
-                          row 
-                          #f)))
-  (set-finalizer! result-c (lambda(x) (mysql-c-free-result result-c)))
-  (if result-c 
-      fetch-c 
-      (lambda()#f)))
+(define (mysql-query-with-proc mysql-c proc . parameters)
+  (proc mysql-c parameters))
 
-(define (dispatch-proc conn proc . parameters)
-  (proc conn parameters))
+(define (mysql-query-with-string mysql-c query parameters)
+  (cond ((null? parameters) (execute-query mysql-c query))
+        ((pair? parameters) (execute-query mysql-c (escape-parameters mysql-c query (car parameters))))
+        (else (error "unrecognised parameter object: " parameters))))
 
-(define (escape-placeholder-params conn query parameters)
-  (let ((escaped-parameters 
-          (map (lambda(x)
-                 (cons (symbol->string (car x)) (mysql-c-real-escape-string conn (cdr x))))
-               parameters)))
-       (irregex-replace/all 
-         (flatten (list 'or (map (lambda(x) (car x)) escaped-parameters)))
-         query
-         (lambda (r) 
-           (alist-ref (irregex-match-substring r 0) escaped-parameters string=?)))))
+(define (execute-query mysql-c query)
+  (define result-c (mysql-c-query mysql-c query))
+  (set-finalizer! result-c mysql-c-free-result)
+  (define (fetch . fetch-args)
+    (cond ((null? fetch-args)
+             (let ((row (mysql-c-fetch-row result-c)))
+                  (if (pair? row) row #f)))
+          ((pair? fetch-args)
+             (fetch-loop result-c (car fetch-args)))))
+
+  (if result-c fetch (lambda r #f)))
+
+(define (fetch-loop result-c thunk)
+  (letrec ((process (lambda()
+                      (let ((row (mysql-c-fetch-row result-c)))
+                        (if (pair? row)
+                          (begin
+                            (thunk row)
+                            (process)))))))
+    (process)))
+
+(define (make-irx parameters)
+  (flatten (list 'or (map (lambda(x) (car x)) parameters))))
+
+(define (stringify-keys parameters)
+  (map (lambda(p)
+         (cons (symbol->string(car p)) (cdr p))) parameters))
+
+(define (escape-parameters mysql-c query parameters)
+  (let ((stringified-keys (stringify-keys parameters)))
+    (irregex-replace/all 
+      (make-irx stringified-keys) 
+      query 
+      (lambda(r)
+        (mysql-c-real-escape-string mysql-c 
+          (alist-ref (irregex-match-substring r 0) stringified-keys string=?))))))
 
 (foreign-declare "#include \"mysql.h\"")
 
