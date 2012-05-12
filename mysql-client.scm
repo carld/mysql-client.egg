@@ -22,7 +22,7 @@
 
 (module mysql-client (make-mysql-connection)
         (import scheme chicken foreign)
-        (use srfi-1 regex)
+        (use irregex data-structures)
 
 (define (make-mysql-connection host user pass database)
   (define mysql-c (make-mysql-c-connection host user pass database))
@@ -47,10 +47,15 @@
   (proc conn parameters))
 
 (define (escape-placeholder-params conn query parameters)
-  (let ((escaped-parameters (map (lambda(x)
-                                   (cons (string-append "\\" (symbol->string (car x))) (mysql-c-real-escape-string conn (cdr x))))
-                                 parameters)))
-       (string-substitute* query escaped-parameters)))
+  (let ((escaped-parameters 
+          (map (lambda(x)
+                 (cons (symbol->string (car x)) (mysql-c-real-escape-string conn (cdr x))))
+               parameters)))
+       (irregex-replace/all 
+         (flatten (list 'or (map (lambda(x) (car x)) escaped-parameters)))
+         query
+         (lambda (r) 
+           (alist-ref (irregex-match-substring r 0) escaped-parameters string=?)))))
 
 (foreign-declare "#include \"mysql.h\"")
 

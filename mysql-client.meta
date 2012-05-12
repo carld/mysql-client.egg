@@ -2,5 +2,4 @@
  (category db)
  (author "A. Carl Douglas")
  (synopsis "A MySQL client library.")
- (depends regex)
  (files "mysql-client.scm" "mysql-client.setup"))

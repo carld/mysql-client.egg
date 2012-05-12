@@ -14,7 +14,8 @@
 (if (not (pointer? (mysql (lambda(c . a) c))))
   (error "closure did not dispatch connection object"))
 
-(define fetch2 (mysql "select * from tables where table_name = '$1' or table_name = '$2'" 
-                      '(($1 . "reads")($2 . "'unknown'"))))
+(define fetch2 
+  (mysql "select * from tables where table_name = '$1' or table_name = '$foo'"
+ '(($1 . "reads")($foo . "'unknown'"))))
 (printf "~A~%" (fetch2))
 
