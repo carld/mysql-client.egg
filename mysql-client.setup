@@ -1,20 +1,13 @@
 (use posix)
 
-(define iflags '())
-(define lflags '())
+(define (mysql-flags opts)
+  (with-input-from-pipe
+    (string-append "mysql_config " (string-join opts " "))
+    (lambda() 
+      (string-split (read-line) " \t"))))
 
-(with-input-from-pipe 
-  "mysql_config --include" 
-  (lambda() 
-    (set! iflags (read-line))))
-
-(with-input-from-pipe 
-  "mysql_config --libs" 
-  (lambda() 
-    (set! lflags (read-line))))
-
-(compile -C ,iflags
-         -L ,lflags
+(compile ,@(map (lambda(f)(sprintf "-C ~A" f)) (mysql-flags '("--include")))
+         ,@(map (lambda(f)(sprintf "-L ~A" f)) (mysql-flags '("--libs")))
          -d0 -O3
          -s mysql-client.scm 
          -j mysql-client)
