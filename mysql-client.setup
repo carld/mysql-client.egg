@@ -6,7 +6,10 @@
     (lambda() 
       (string-split (read-line) " \t"))))
 
-(compile ,@(map (lambda(f)(sprintf "-C ~A" f)) (mysql-flags '("--include")))
+(define mysql-version
+  (string-split (car (mysql-flags '("--version"))) "."))
+
+(compile ,@(map (lambda(f)(sprintf "-C ~A" f)) (mysql-flags '("--cflags")))
          ,@(map (lambda(f)(sprintf "-L ~A" f)) (mysql-flags '("--libs")))
          -d0 -O3
          -s mysql-client.scm 
@@ -18,4 +21,14 @@
   'mysql-client
   '("mysql-client.so" "mysql-client.import.so")
   '((version "0.6")))
+
+(define (install-name-tool-fix)
+  (define install-name-tool-cmd
+     "  sudo install_name_tool -change libmysqlclient.18.dylib $(mysql_config --variable=pkglibdir)/libmysqlclient.18.dylib /usr/local/lib/chicken/6/mysql-client.so")
+  (printf "MySQL ~A detected,~%~A~%" 
+          (string-join mysql-version ".")
+          install-name-tool-cmd)
+  (process install-name-tool-cmd))
+
+(cond ((equal? mysql-version '("5" "5" "24")) (install-name-tool-fix)))
 
