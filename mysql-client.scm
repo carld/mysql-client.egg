@@ -51,17 +51,15 @@
                   (if (pair? row) row #f)))
           ((pair? fetch-args)
              (fetch-loop result-c (car fetch-args)))))
-
   (if result-c fetch (lambda r #f)))
 
 (define (fetch-loop result-c thunk)
-  (letrec ((process (lambda()
-                      (let ((row (mysql-c-fetch-row result-c)))
-                        (if (pair? row)
-                          (begin
-                            (thunk row)
-                            (process)))))))
-    (process)))
+  (let process ()
+       (let ((row (mysql-c-fetch-row result-c)))
+            (if (pair? row)
+               (begin
+                 (thunk row)
+                 (process))))))
 
 (define (make-irx parameters)
   (flatten (list 'or (map (lambda(x) (car x)) parameters))))
