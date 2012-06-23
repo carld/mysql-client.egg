@@ -25,7 +25,15 @@ SQL
           '(($name . "hell'o1")))
 (exec-sql "INSERT INTO scheme_test (created_at, name) VALUES (NOW(), '$name')" 
           '(($name . "hello%2")))
+(exec-sql "INSERT INTO scheme_test (created_at, name) VALUES (NOW(), NULL)") 
 (exec-sql "SELECT * FROM scheme_test")
+
+(assert (mysql-null? "(NULL)"))
+(mysql-null "(ANOTHER NULL)")
+
+(assert (mysql-null? "(ANOTHER NULL)"))
+(exec-sql "SELECT * FROM scheme_test")
+
 (exec-sql "DROP DATABASE chicken_scheme_mysql_client_test")
 (exec-sql "USE information_schema")
 

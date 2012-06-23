@@ -15,12 +15,8 @@
 ;   user=root
 ;   password=secret
 ;
-; Note how MySQL (NULL) values are represented when
-; returned in an array of string pointers:
-; A (NULL) value is represented by a string containing 
-; a 0x04 0x00 char sequence.
 
-(module mysql-client (make-mysql-connection)
+(module mysql-client (make-mysql-connection mysql-null mysql-null?)
         (import scheme chicken foreign)
         (use irregex data-structures)
 
@@ -77,6 +73,13 @@
         (mysql-c-real-escape-string mysql-c 
           (alist-ref (irregex-match-substring r 0) stringified-keys string=?))))))
 
+(define mysql-null (make-parameter "(NULL)"))
+
+(define-external (mysql_null) c-string (mysql-null))
+
+(define (mysql-null? field)
+  (equal? (mysql-null) field))
+
 (foreign-declare "#include \"mysql.h\"")
 
 (define mysql-c-real-escape-string
@@ -96,7 +99,7 @@ END
 ))
 
 (define mysql-c-fetch-row
-  (foreign-lambda* c-string-list* ((c-pointer result))
+  (foreign-safe-lambda* c-string-list* ((c-pointer result))
 #<<END
   int num_fields = 0;
   int index = 0;
@@ -114,8 +117,8 @@ END
     return(NULL);
   }
   for (;row && index--;) {
-    if (row[index] == NULL) 
-      fields[index] = strdup("\x04\x00");
+    if (row[index] == NULL)
+      fields[index] = strdup(mysql_null());
     else
       fields[index] = strdup(row[index]);
   }
