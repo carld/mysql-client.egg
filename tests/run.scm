@@ -11,6 +11,14 @@
       ((_ sql ...) (begin 
                      ((mysql sql ...) (lambda r (printf "~A~%" r)))))))
 
+(define-syntax assert-mysql-error
+  (syntax-rules ()
+    ((_ code ...)
+     (assert (condition-case
+              (begin code ... #f)
+              ((exn mysql) #t))))))
+
+(assert-mysql-error (exec-sql "gibberish"))
 (exec-sql "CREATE DATABASE IF NOT EXISTS chicken_scheme_mysql_client_test")
 (exec-sql "USE chicken_scheme_mysql_client_test")
 (exec-sql
