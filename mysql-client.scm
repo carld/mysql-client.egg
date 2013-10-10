@@ -7,7 +7,10 @@
 ;   (fetch)
 ;
 ; Provide password as #f to use the password from the .my.cnf
-; options file (/home/user/.my.cnf). 
+; options file (/home/user/.my.cnf).   If host is #f, it will
+; try to connect via a socket (same as "localhost", which differs
+; from "127.0.0.1").  If user is #f, it will connect as the current
+; UNIX user.
 ;
 ; Example .my.cnf:
 ;
@@ -15,14 +18,27 @@
 ;   user=root
 ;   password=secret
 ;
+; To connect to a host on a nonstandard port or socket, use the port: or
+; socket: keywords.  For example, to connect to socket /tmp/mysql.socket:
+; (define mysql (make-mysql-connection
+;                 #f "user" "pass" "schema" socket: "/tmp/mysql.socket"))
 
 (module mysql-client (make-mysql-connection mysql-null mysql-null?)
         (import scheme chicken foreign)
         (use irregex data-structures)
 
-(define (make-mysql-connection host user pass database)
-  (define mysql-c (make-mysql-c-connection host user pass database))
+(define (make-mysql-connection host user pass database #!key port socket)
+  (define mysql-c (make-mysql-c-connection host user pass database
+                                           (or port 0) socket))
   (set-finalizer! mysql-c close-mysql-c-connection)
+
+  ;; XXX Should the password be in the arguments list?
+  ;; It'll appear in the error trace.  OTOH, it's important that
+  ;; we can debug how/why it went wrong.
+  (mysql-check-error mysql-c 'make-mysql-connection
+                     `(,host ,user ,pass ,database
+                             ,@(if port (list port: port) '())
+                             ,@(if socket (list socket: socket) '())))
 
   (define (mysql-query query . parameters)
     (cond ((procedure? query)(mysql-query-with-proc mysql-c query parameters))
@@ -38,24 +54,32 @@
         ((pair? parameters) (execute-query mysql-c (escape-parameters mysql-c query (car parameters))))
         (else (error "unrecognised parameter object: " parameters))))
 
+
+(define-inline (fetch-row result-c)
+  (or (mysql-c-fetch-row result-c)
+      ;; result-c could also be NULL, but that should
+      ;; never be possible in a normal situation.
+      (error "Out of memory while fetching row")))
+
 (define (execute-query mysql-c query)
   (define result-c (mysql-c-query mysql-c query))
+  (mysql-check-error mysql-c 'execute-query query)
   (set-finalizer! result-c mysql-c-free-result)
-  (define (fetch . fetch-args)
-    (cond ((null? fetch-args)
-             (let ((row (mysql-c-fetch-row result-c)))
-                  (if (pair? row) row #f)))
-          ((pair? fetch-args)
-             (fetch-loop result-c (car fetch-args)))))
-  (if result-c fetch (lambda r #f)))
+  (if (not result-c)
+      (constantly #f)
+      (lambda fetch-args
+        (cond ((null? fetch-args)
+               (let ((row (fetch-row result-c)))
+                 (and (pair? row) row)))
+              ((pair? fetch-args)
+               (fetch-loop result-c (car fetch-args)))))))
 
 (define (fetch-loop result-c thunk)
   (let process ()
-       (let ((row (mysql-c-fetch-row result-c)))
-            (if (pair? row)
-               (begin
-                 (thunk row)
-                 (process))))))
+    (let ((row (fetch-row result-c)))
+      (when (pair? row)
+        (thunk row)
+        (process)))))
 
 (define (make-irx parameters)
   (flatten (list 'or (map (lambda(x) (car x)) parameters))))
@@ -70,8 +94,10 @@
       (make-irx stringified-keys) 
       query 
       (lambda(r)
-        (mysql-c-real-escape-string mysql-c 
-          (alist-ref (irregex-match-substring r 0) stringified-keys string=?))))))
+        (or (mysql-c-real-escape-string
+             mysql-c (alist-ref (irregex-match-substring r 0)
+                                stringified-keys string=?))
+            (error "Out of memory while escaping parameter"))))))
 
 (define mysql-null (make-parameter "(NULL)"))
 
@@ -90,7 +116,6 @@
   len1 = strlen(str) * 2 + 1;
   dst = (char *)calloc(len1, sizeof(char));
   if (dst == NULL) {
-    fprintf(stderr, "out of memory\n");
     return(NULL);
   }
   len2 = mysql_real_escape_string(conn, dst, str, strlen(str));
@@ -113,7 +138,6 @@ END
   row = mysql_fetch_row(result);
   fields = (char **)calloc(num_fields + 1, sizeof(char *));
   if (fields == NULL) {
-    fprintf(stderr, "out of memory\n");
     return(NULL);
   }
   for (;row && index--;) {
@@ -138,16 +162,7 @@ END
 #<<END
   MYSQL_RES *result;
 
-  fprintf (stderr, "MYSQL QUERY: %s\n", sql);
-
-  int rc = mysql_query(conn, sql);
-
-  if (mysql_errno(conn) != 0) {
-    fprintf (stderr, "MYSQL ERROR: %d %s\n", 
-            mysql_errno(conn), mysql_error(conn));
-  }
-
-  if (rc != 0) {
+  if (mysql_query(conn, sql) != 0) {
     return(NULL); /*C_return(C_SCHEME_FALSE);*/
   }
 
@@ -168,18 +183,25 @@ END
     (c-string host)
     (c-string user)
     (c-string pass)
-    (c-string database))
+    (c-string database)
+    (int port)
+    (c-string socket))
 #<<END
   MYSQL *conn;
   conn = mysql_init(NULL);
   mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "client");
-  mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
-  if (mysql_errno(conn) != 0) {
-    fprintf (stderr, "MYSQL ERROR: %d %s\n", 
-            mysql_errno(conn), mysql_error(conn));
-  }
+  mysql_real_connect(conn, host, user, pass, database, port, socket, 0);
   return(conn);
 END
 ))
 
+(define (mysql-check-error mysql-c loc . args)
+  (let ((errno ((foreign-lambda int "mysql_errno" c-pointer) mysql-c)))
+    (unless (zero? errno)
+      (let ((msg ((foreign-lambda c-string "mysql_error" c-pointer) mysql-c)))
+        (signal (make-composite-condition
+                 (make-property-condition
+                  'exn 'location loc 'message msg 'arguments args)
+                 (make-property-condition
+                  'mysql 'errno errno 'error msg)))))))
 )
