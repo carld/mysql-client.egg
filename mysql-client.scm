@@ -7,7 +7,10 @@
 ;   (fetch)
 ;
 ; Provide password as #f to use the password from the .my.cnf
-; options file (/home/user/.my.cnf). 
+; options file (/home/user/.my.cnf).   If host is #f, it will
+; try to connect via a socket (same as "localhost", which differs
+; from "127.0.0.1").  If user is #f, it will connect as the current
+; UNIX user.
 ;
 ; Example .my.cnf:
 ;
@@ -15,13 +18,18 @@
 ;   user=root
 ;   password=secret
 ;
+; To connect to a host on a nonstandard port or socket, use the port: or
+; socket: keywords.  For example, to connect to socket /tmp/mysql.socket:
+; (define mysql (make-mysql-connection
+;                 #f "user" "pass" "schema" socket: "/tmp/mysql.socket"))
 
 (module mysql-client (make-mysql-connection mysql-null mysql-null?)
         (import scheme chicken foreign)
         (use irregex data-structures)
 
-(define (make-mysql-connection host user pass database)
-  (define mysql-c (make-mysql-c-connection host user pass database))
+(define (make-mysql-connection host user pass database #!key port socket)
+  (define mysql-c (make-mysql-c-connection host user pass database
+                                           (or port 0) socket))
   (set-finalizer! mysql-c close-mysql-c-connection)
 
   (define (mysql-query query . parameters)
@@ -168,12 +176,14 @@ END
     (c-string host)
     (c-string user)
     (c-string pass)
-    (c-string database))
+    (c-string database)
+    (int port)
+    (c-string socket))
 #<<END
   MYSQL *conn;
   conn = mysql_init(NULL);
   mysql_options(conn, MYSQL_READ_DEFAULT_GROUP, "client");
-  mysql_real_connect(conn, host, user, pass, database, 0, NULL, 0);
+  mysql_real_connect(conn, host, user, pass, database, port, socket, 0);
   if (mysql_errno(conn) != 0) {
     fprintf (stderr, "MYSQL ERROR: %d %s\n", 
             mysql_errno(conn), mysql_error(conn));
