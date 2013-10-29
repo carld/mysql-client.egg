@@ -20,7 +20,7 @@
 (install-extension 
   'mysql-client
   '("mysql-client.so" "mysql-client.import.so")
-  '((version "0.8")))
+  '((version "0.9")))
 
 (define (install-name-tool-fix)
   (define install-name-tool-cmd
